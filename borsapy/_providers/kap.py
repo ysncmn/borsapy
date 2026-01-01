@@ -29,6 +29,7 @@ class KAPProvider(BaseProvider):
     BIST_COMPANIES_URL = "https://www.kap.org.tr/tr/bist-sirketler"
     DISCLOSURE_URL = "https://www.kap.org.tr/tr/bildirim-sorgu-sonuc"
     CALENDAR_API_URL = "https://kap.org.tr/tr/api/expected-disclosure-inquiry/company"
+    COMPANY_INFO_URL = "https://kap.org.tr/tr/sirket-bilgileri/ozet"
     CACHE_DURATION = 86400  # 24 hours
 
     def __init__(self):
@@ -37,6 +38,8 @@ class KAPProvider(BaseProvider):
         self._cache_time: float = 0
         self._oid_map: dict[str, str] | None = None
         self._oid_cache_time: float = 0
+        self._company_details_cache: dict[str, dict] = {}
+        self._company_details_cache_time: dict[str, float] = {}
 
     def get_companies(self) -> pd.DataFrame:
         """
@@ -342,6 +345,79 @@ class KAPProvider(BaseProvider):
 
         except Exception as e:
             raise APIError(f"Failed to fetch calendar for {symbol}: {e}") from e
+
+    def get_company_details(self, symbol: str) -> dict:
+        """
+        Get company details from KAP company info page.
+
+        Scrapes the KAP company page for sector, market, and website information.
+
+        Args:
+            symbol: Stock symbol (e.g., "THYAO").
+
+        Returns:
+            Dict with keys:
+            - sector: Company sector (e.g., "ULAŞTIRMA VE DEPOLAMA")
+            - market: Stock market (e.g., "YILDIZ PAZAR")
+            - website: Company website URL(s)
+        """
+        symbol = symbol.upper().replace(".IS", "").replace(".E", "")
+        current_time = time.time()
+
+        # Check cache
+        if symbol in self._company_details_cache:
+            cache_time = self._company_details_cache_time.get(symbol, 0)
+            if (current_time - cache_time) < self.CACHE_DURATION:
+                return self._company_details_cache[symbol]
+
+        # Get KAP member OID for the symbol
+        member_oid = self.get_member_oid(symbol)
+        if not member_oid:
+            return {}
+
+        # Fetch company info page
+        url = f"{self.COMPANY_INFO_URL}/{member_oid}"
+
+        try:
+            response = self._client.get(url, timeout=15)
+            response.raise_for_status()
+            html = response.text
+
+            result = {}
+
+            # Extract sector: href="/tr/Sektorler?sector=...">SECTOR_NAME</a>
+            sector_match = re.search(
+                r'href="/tr/Sektorler\?sector=[^"]*">([^<]+)</a>',
+                html
+            )
+            if sector_match:
+                result["sector"] = sector_match.group(1).strip()
+
+            # Extract market: href="/tr/Pazarlar?market=...">MARKET_NAME</a>
+            market_match = re.search(
+                r'href="/tr/Pazarlar\?market=[^"]*">([^<]+)</a>',
+                html
+            )
+            if market_match:
+                result["market"] = market_match.group(1).strip()
+
+            # Extract website: after "İnternet Adresi" label
+            # Pattern: <h3...>İnternet Adresi</h3><p class="...">WEBSITE</p>
+            website_match = re.search(
+                r'İnternet Adresi</h3><p[^>]*>([^<]+)</p>',
+                html
+            )
+            if website_match:
+                result["website"] = website_match.group(1).strip()
+
+            # Cache result
+            self._company_details_cache[symbol] = result
+            self._company_details_cache_time[symbol] = current_time
+
+            return result
+
+        except Exception:
+            return {}
 
 
 # Singleton

@@ -84,6 +84,96 @@ class HedeFiyatProvider(BaseProvider):
         except Exception:
             return result
 
+    def get_recommendations_summary(self, symbol: str) -> dict[str, int]:
+        """
+        Get analyst recommendation summary (buy/hold/sell counts).
+
+        Parses individual analyst recommendations from hedeffiyat.com.tr
+        and aggregates them into strongBuy, buy, hold, sell, strongSell counts.
+
+        Recommendation mapping:
+        - strongBuy: "Güçlü Al"
+        - buy: "Al", "Endeks Üstü Getiri", "Endeks Üstü Get."
+        - hold: "Tut", "Nötr", "Endekse Paralel"
+        - sell: "Sat", "Endeks Altı Getiri", "Endeks Altı Get."
+        - strongSell: "Güçlü Sat"
+
+        Args:
+            symbol: Stock symbol (e.g., "THYAO").
+
+        Returns:
+            Dictionary with counts for each recommendation category.
+        """
+        symbol = symbol.upper().replace(".IS", "").replace(".E", "")
+
+        # Check cache
+        cache_key = f"hedeffiyat_recsummary_{symbol}"
+        cached = self._cache_get(cache_key)
+        if cached is not None:
+            return cached
+
+        result = {
+            "strongBuy": 0,
+            "buy": 0,
+            "hold": 0,
+            "sell": 0,
+            "strongSell": 0,
+        }
+
+        try:
+            # Get stock page URL
+            page_url = self._get_stock_url(symbol)
+            if not page_url:
+                return result
+
+            # Fetch stock page
+            headers = {
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
+            }
+            response = self._client.get(page_url, headers=headers, timeout=15)
+            html = response.text
+            if not html:
+                return result
+
+            # Parse recommendation buttons
+            # Pattern: btn-sm btn-(success|warning|danger|primary)...>RECOMMENDATION</a
+            # Note: btn-primary is used for "Tut" (Hold) recommendations
+            pattern = r'btn-sm\s+btn-(success|warning|danger|primary)[^>]*>([^<]+)</a'
+            matches = re.findall(pattern, html, re.IGNORECASE)
+
+            for btn_class, rec_text in matches:
+                rec_text = rec_text.strip().lower()
+                btn_class = btn_class.lower()
+
+                # Map recommendation text to category
+                if rec_text in ("güçlü al", "güçlü alım"):
+                    result["strongBuy"] += 1
+                elif rec_text in ("al", "alım", "endeks üstü get.", "endeks üstü getiri"):
+                    result["buy"] += 1
+                elif rec_text in ("tut", "tutma", "nötr", "endekse paralel"):
+                    result["hold"] += 1
+                elif rec_text in ("sat", "satım", "endeks altı get.", "endeks altı getiri"):
+                    result["sell"] += 1
+                elif rec_text in ("güçlü sat", "güçlü satım"):
+                    result["strongSell"] += 1
+                # Fallback to button color if text doesn't match
+                elif btn_class == "success":
+                    result["buy"] += 1
+                elif btn_class in ("warning", "primary"):
+                    result["hold"] += 1
+                elif btn_class == "danger":
+                    result["sell"] += 1
+
+            # Cache if we found any recommendations
+            if sum(result.values()) > 0:
+                self._cache_set(cache_key, result, self.CACHE_DURATION)
+
+            return result
+
+        except Exception:
+            return result
+
     def _get_stock_url(self, symbol: str) -> str | None:
         """
         Get the hedeffiyat.com.tr URL for a stock symbol.

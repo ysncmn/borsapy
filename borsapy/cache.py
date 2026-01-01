@@ -74,6 +74,7 @@ class TTL:
     COMPANY_LIST = 86400  # 24 hours
     FUND_DATA = 3600  # 1 hour
     INFLATION_DATA = 86400  # 24 hours
+    VIOP = 300  # 5 minutes (delayed data)
 
 
 # Global cache instance

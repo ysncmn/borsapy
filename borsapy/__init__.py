@@ -57,6 +57,7 @@ from borsapy.inflation import Inflation
 from borsapy.market import companies, search_companies
 from borsapy.multi import Tickers, download
 from borsapy.ticker import Ticker
+from borsapy.viop import VIOP
 
 __version__ = "0.1.0"
 __author__ = "Said Surucu"
@@ -70,6 +71,7 @@ __all__ = [
     "Fund",
     "Index",
     "Inflation",
+    "VIOP",
     # Market functions
     "companies",
     "search_companies",

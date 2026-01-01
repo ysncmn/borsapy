@@ -874,6 +874,48 @@ class IsYatirimProvider(BaseProvider):
         self._cache_set(cache_key, result, TTL.REALTIME_PRICE)
         return result
 
+    def get_business_summary(self, symbol: str) -> str | None:
+        """
+        Get business summary (Faal Alanı) for a stock.
+
+        Args:
+            symbol: Stock symbol (e.g., "THYAO").
+
+        Returns:
+            Business summary text or None if not available.
+        """
+        import re
+
+        symbol = symbol.upper().replace(".IS", "").replace(".E", "")
+
+        cache_key = f"isyatirim:business_summary:{symbol}"
+        cached = self._cache_get(cache_key)
+        if cached is not None:
+            return cached
+
+        stock_page_url = f"https://www.isyatirim.com.tr/tr-tr/analiz/hisse/Sayfalar/sirket-karti.aspx?hisse={symbol}"
+
+        try:
+            response = self._client.get(stock_page_url, timeout=15)
+            response.raise_for_status()
+            html = response.text
+        except Exception:
+            return None
+
+        # Find "Faal Alanı" table row
+        pattern = r'<th[^>]*>Faal Alanı</th>\s*<td[^>]*>([^<]+)</td>'
+        match = re.search(pattern, html)
+
+        if not match:
+            return None
+
+        summary = match.group(1).strip()
+        if not summary:
+            return None
+
+        self._cache_set(cache_key, summary, TTL.FINANCIAL_STATEMENTS)
+        return summary
+
 
 # Singleton instance
 _provider: IsYatirimProvider | None = None

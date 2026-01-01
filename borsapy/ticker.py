@@ -7,6 +7,7 @@ from typing import Any
 
 import pandas as pd
 
+from borsapy._providers.kap import get_kap_provider
 from borsapy._providers.paratic import get_paratic_provider
 
 
@@ -220,6 +221,9 @@ class EnrichedInfo:
         "currency",
         "exchange",
         "timezone",
+        "sector",
+        "industry",
+        "website",
         "marketCap",
         "sharesOutstanding",
         "trailingPE",
@@ -232,6 +236,7 @@ class EnrichedInfo:
         "fiftyTwoWeekLow",
         "fiftyDayAverage",
         "twoHundredDayAverage",
+        "longBusinessSummary",
     ]
 
     _DIVIDEND_KEYS = [
@@ -287,10 +292,29 @@ class EnrichedInfo:
         if metrics.get("market_cap") and basic.get("last"):
             shares = int(metrics["market_cap"] / basic["last"])
 
+        # Get business summary (Faal Alanı)
+        try:
+            business_summary = self._ticker._get_isyatirim().get_business_summary(
+                self._ticker._symbol
+            )
+        except Exception:
+            business_summary = None
+
+        # Get company details from KAP (sector, market, website)
+        try:
+            kap_details = get_kap_provider().get_company_details(
+                self._ticker._symbol
+            )
+        except Exception:
+            kap_details = {}
+
         self._extended_data = {
             "currency": "TRY",
             "exchange": "BIST",
             "timezone": "Europe/Istanbul",
+            "sector": kap_details.get("sector"),
+            "industry": kap_details.get("sector"),  # KAP has single level
+            "website": kap_details.get("website"),
             "marketCap": metrics.get("market_cap"),
             "sharesOutstanding": shares,
             "trailingPE": metrics.get("pe_ratio"),
@@ -303,6 +327,7 @@ class EnrichedInfo:
             "fiftyTwoWeekLow": year_low,
             "fiftyDayAverage": fifty_avg,
             "twoHundredDayAverage": two_hundred_avg,
+            "longBusinessSummary": business_summary,
         }
 
         return self._extended_data
@@ -962,6 +987,29 @@ class Ticker:
             {'recommendation': 'AL', 'target_price': 579.99, 'upside_potential': 116.01}
         """
         return self._get_isyatirim().get_recommendations(self._symbol)
+
+    @cached_property
+    def recommendations_summary(self) -> dict[str, int]:
+        """
+        Get analyst recommendation summary with buy/hold/sell counts.
+
+        Aggregates individual analyst recommendations from hedeffiyat.com.tr
+        into yfinance-compatible categories.
+
+        Returns:
+            Dictionary with counts:
+            - strongBuy: Strong buy recommendations
+            - buy: Buy recommendations (includes "Endeks Üstü Getiri")
+            - hold: Hold recommendations (includes "Nötr", "Endekse Paralel")
+            - sell: Sell recommendations (includes "Endeks Altı Getiri")
+            - strongSell: Strong sell recommendations
+
+        Examples:
+            >>> stock = Ticker("THYAO")
+            >>> stock.recommendations_summary
+            {'strongBuy': 0, 'buy': 31, 'hold': 0, 'sell': 0, 'strongSell': 0}
+        """
+        return self._get_hedeffiyat().get_recommendations_summary(self._symbol)
 
     @cached_property
     def news(self) -> pd.DataFrame:
