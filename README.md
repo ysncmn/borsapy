@@ -82,9 +82,15 @@ df = hisse.history(period="max")    # Tüm geçmiş
 # Tarih aralığı
 df = hisse.history(start="2024-01-01", end="2024-06-30")
 
-# Farklı zaman dilimleri
-df = hisse.history(period="5g", interval="1sa")  # 5 gün, saatlik
-df = hisse.history(period="1ay", interval="1g")  # 1 ay, günlük
+# Farklı zaman dilimleri (interval)
+df = hisse.history(period="1g", interval="1m")   # 1 dakikalık mumlar
+df = hisse.history(period="1g", interval="3m")   # 3 dakikalık mumlar
+df = hisse.history(period="1g", interval="5m")   # 5 dakikalık mumlar
+df = hisse.history(period="1g", interval="15m")  # 15 dakikalık mumlar
+df = hisse.history(period="1g", interval="30m")  # 30 dakikalık mumlar
+df = hisse.history(period="1g", interval="45m")  # 45 dakikalık mumlar
+df = hisse.history(period="5g", interval="1h")   # Saatlik mumlar
+df = hisse.history(period="1ay", interval="1d")  # Günlük mumlar (varsayılan)
 ```
 
 ### Finansal Tablolar
