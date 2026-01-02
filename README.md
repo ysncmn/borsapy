@@ -399,7 +399,7 @@ Ek özellik istekleri ve öneriler için [GitHub Discussions](https://github.com
 
 ## Sorumluluk Reddi
 
-Bu kütüphane aracılığıyla erişilen veriler, ilgili veri kaynaklarına (İş Yatırım, Paratic, KAP, TCMB, BtcTurk, TEFAS, doviz.com, hedeffiyat.com.tr, isinturkiye.com.tr) aittir. Kütüphane yalnızca kişisel kullanım amacıyla hazırlanmıştır ve ticari amaçlarla kullanılamaz.
+Bu kütüphane aracılığıyla erişilen veriler, ilgili veri kaynaklarına (İş Yatırım, Paratic, KAP, TCMB, BtcTurk, TEFAS, doviz.com, hedeffiyat.com.tr, isinturkiye.com.tr) aittir. Kütüphane yalnızca kişisel kullanım amacıyla hazırlanmıştır ve veriler ticari amaçlarla kullanılamaz.
 
 ---
 
