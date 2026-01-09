@@ -14,10 +14,15 @@ class ParaticProvider(BaseProvider):
     """
     Provider for historical OHLCV data from Paratic.
 
-    API: https://piyasa.paratic.com/API/g.php
+    API: https://piyasa.paratic.com/API/historical.php
     """
 
-    BASE_URL = "https://piyasa.paratic.com/API/g.php"
+    BASE_URL = "https://piyasa.paratic.com/API/historical.php"
+
+    # Required headers for API access
+    HEADERS = {
+        "Referer": "https://piyasa.paratic.com/",
+    }
 
     # Period mapping (yfinance-style to days)
     PERIOD_MAP = {
@@ -77,7 +82,7 @@ class ParaticProvider(BaseProvider):
         }
 
         try:
-            response = self._get(self.BASE_URL, params=params)
+            response = self._get(self.BASE_URL, params=params, headers=self.HEADERS)
             data = response.json()
         except Exception as e:
             raise APIError(f"Failed to fetch quote for {symbol}: {e}") from e
@@ -178,7 +183,7 @@ class ParaticProvider(BaseProvider):
         }
 
         try:
-            response = self._get(self.BASE_URL, params=params)
+            response = self._get(self.BASE_URL, params=params, headers=self.HEADERS)
             data = response.json()
         except Exception as e:
             raise APIError(f"Failed to fetch data for {symbol}: {e}") from e
