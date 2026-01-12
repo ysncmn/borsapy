@@ -820,12 +820,26 @@ class IsYatirimProvider(BaseProvider):
 
         stock_page_url = f"https://www.isyatirim.com.tr/tr-tr/analiz/hisse/Sayfalar/sirket-karti.aspx?hisse={symbol}"
 
-        try:
-            response = self._client.get(stock_page_url, timeout=15)
-            response.raise_for_status()
-            html = response.text
-        except Exception as e:
-            raise APIError(f"Failed to fetch company metrics for {symbol}: {e}") from e
+        # Retry logic for unstable İş Yatırım connection
+        import time
+        max_retries = 3
+        last_error = None
+        html = None
+
+        for attempt in range(max_retries):
+            try:
+                response = self._client.get(stock_page_url, timeout=15)
+                response.raise_for_status()
+                html = response.text
+                break
+            except Exception as e:
+                last_error = e
+                if attempt < max_retries - 1:
+                    time.sleep(1 * (attempt + 1))  # 1s, 2s backoff
+                continue
+
+        if html is None:
+            raise APIError(f"Failed to fetch company metrics for {symbol}: {last_error}") from last_error
 
         result: dict[str, Any] = {
             "market_cap": None,
