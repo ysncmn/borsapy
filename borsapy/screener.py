@@ -82,6 +82,8 @@ class Screener:
         "return_1y": {"min": -100, "max": 1000},
         "return_ytd": {"min": -100, "max": 1000},
         "volume_3m": {"min": 0, "max": 1000},
+        "volume_12m": {"min": 0, "max": 1000},  # 12 aylık ortalama hacim (mn $)
+        "float_market_cap": {"min": 0, "max": 100000},  # Halka açık piyasa değeri (mn $)
     }
 
     def add_filter(
