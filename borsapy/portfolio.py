@@ -701,8 +701,10 @@ class Portfolio(TechnicalMixin):
     def _get_current_price(self, asset: Ticker | FX | Crypto | Fund) -> float:
         """Get current price from asset."""
         try:
-            if isinstance(asset, (Ticker, Crypto)):
-                return asset.fast_info.get("last", 0) or 0
+            if isinstance(asset, Ticker):
+                return asset.fast_info.last_price or 0
+            elif isinstance(asset, Crypto):
+                return asset.fast_info.last_price or 0
             elif isinstance(asset, FX):
                 current = asset.current
                 return current.get("last", 0) if current else 0
