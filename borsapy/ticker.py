@@ -800,89 +800,123 @@ class Ticker(TechnicalMixin):
 
         return result
 
-    @cached_property
-    def balance_sheet(self) -> pd.DataFrame:
+    def get_balance_sheet(
+        self, quarterly: bool = False, financial_group: str | None = None
+    ) -> pd.DataFrame:
         """
-        Get annual balance sheet data.
+        Get balance sheet data.
+
+        Args:
+            quarterly: If True, return quarterly data. If False, return annual.
+            financial_group: Financial group code. Use "UFRS" for banks,
+                           "XI_29" for industrial companies. If None, defaults to XI_29.
 
         Returns:
-            DataFrame with balance sheet items as rows and years as columns.
+            DataFrame with balance sheet items as rows and periods as columns.
+
+        Examples:
+            >>> stock = bp.Ticker("THYAO")
+            >>> stock.get_balance_sheet()  # Annual, industrial
+            >>> stock.get_balance_sheet(quarterly=True)  # Quarterly
+
+            >>> bank = bp.Ticker("AKBNK")
+            >>> bank.get_balance_sheet(financial_group="UFRS")  # Banks need UFRS
         """
         return self._get_isyatirim().get_financial_statements(
             symbol=self._symbol,
             statement_type="balance_sheet",
-            quarterly=False,
+            quarterly=quarterly,
+            financial_group=financial_group,
         )
+
+    def get_income_stmt(
+        self, quarterly: bool = False, financial_group: str | None = None
+    ) -> pd.DataFrame:
+        """
+        Get income statement data.
+
+        Args:
+            quarterly: If True, return quarterly data. If False, return annual.
+            financial_group: Financial group code. Use "UFRS" for banks,
+                           "XI_29" for industrial companies. If None, defaults to XI_29.
+
+        Returns:
+            DataFrame with income statement items as rows and periods as columns.
+
+        Examples:
+            >>> stock = bp.Ticker("THYAO")
+            >>> stock.get_income_stmt()  # Annual
+            >>> stock.get_income_stmt(quarterly=True)  # Quarterly
+
+            >>> bank = bp.Ticker("AKBNK")
+            >>> bank.get_income_stmt(quarterly=True, financial_group="UFRS")
+        """
+        return self._get_isyatirim().get_financial_statements(
+            symbol=self._symbol,
+            statement_type="income_stmt",
+            quarterly=quarterly,
+            financial_group=financial_group,
+        )
+
+    def get_cashflow(
+        self, quarterly: bool = False, financial_group: str | None = None
+    ) -> pd.DataFrame:
+        """
+        Get cash flow statement data.
+
+        Args:
+            quarterly: If True, return quarterly data. If False, return annual.
+            financial_group: Financial group code. Use "UFRS" for banks,
+                           "XI_29" for industrial companies. If None, defaults to XI_29.
+
+        Returns:
+            DataFrame with cash flow items as rows and periods as columns.
+
+        Examples:
+            >>> stock = bp.Ticker("THYAO")
+            >>> stock.get_cashflow()  # Annual
+            >>> stock.get_cashflow(quarterly=True)  # Quarterly
+
+            >>> bank = bp.Ticker("AKBNK")
+            >>> bank.get_cashflow(financial_group="UFRS")
+        """
+        return self._get_isyatirim().get_financial_statements(
+            symbol=self._symbol,
+            statement_type="cashflow",
+            quarterly=quarterly,
+            financial_group=financial_group,
+        )
+
+    # Legacy property aliases for backward compatibility
+    @cached_property
+    def balance_sheet(self) -> pd.DataFrame:
+        """Annual balance sheet (use get_balance_sheet() for more options)."""
+        return self.get_balance_sheet(quarterly=False)
 
     @cached_property
     def quarterly_balance_sheet(self) -> pd.DataFrame:
-        """
-        Get quarterly balance sheet data.
-
-        Returns:
-            DataFrame with balance sheet items as rows and quarters as columns.
-        """
-        return self._get_isyatirim().get_financial_statements(
-            symbol=self._symbol,
-            statement_type="balance_sheet",
-            quarterly=True,
-        )
+        """Quarterly balance sheet (use get_balance_sheet(quarterly=True) for more options)."""
+        return self.get_balance_sheet(quarterly=True)
 
     @cached_property
     def income_stmt(self) -> pd.DataFrame:
-        """
-        Get annual income statement data.
-
-        Returns:
-            DataFrame with income statement items as rows and years as columns.
-        """
-        return self._get_isyatirim().get_financial_statements(
-            symbol=self._symbol,
-            statement_type="income_stmt",
-            quarterly=False,
-        )
+        """Annual income statement (use get_income_stmt() for more options)."""
+        return self.get_income_stmt(quarterly=False)
 
     @cached_property
     def quarterly_income_stmt(self) -> pd.DataFrame:
-        """
-        Get quarterly income statement data.
-
-        Returns:
-            DataFrame with income statement items as rows and quarters as columns.
-        """
-        return self._get_isyatirim().get_financial_statements(
-            symbol=self._symbol,
-            statement_type="income_stmt",
-            quarterly=True,
-        )
+        """Quarterly income statement (use get_income_stmt(quarterly=True) for more options)."""
+        return self.get_income_stmt(quarterly=True)
 
     @cached_property
     def cashflow(self) -> pd.DataFrame:
-        """
-        Get annual cash flow statement data.
-
-        Returns:
-            DataFrame with cash flow items as rows and years as columns.
-        """
-        return self._get_isyatirim().get_financial_statements(
-            symbol=self._symbol,
-            statement_type="cashflow",
-            quarterly=False,
-        )
+        """Annual cash flow (use get_cashflow() for more options)."""
+        return self.get_cashflow(quarterly=False)
 
     @cached_property
     def quarterly_cashflow(self) -> pd.DataFrame:
-        """
-        Get quarterly cash flow statement data.
-
-        Returns:
-            DataFrame with cash flow items as rows and quarters as columns.
-        """
-        return self._get_isyatirim().get_financial_statements(
-            symbol=self._symbol,
-            statement_type="cashflow",
-            quarterly=True,
-        )
+        """Quarterly cash flow (use get_cashflow(quarterly=True) for more options)."""
+        return self.get_cashflow(quarterly=True)
 
     def _calculate_ttm(self, quarterly_df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -905,47 +939,62 @@ class Ticker(TechnicalMixin):
 
         return numeric_df.sum(axis=1).to_frame(name="TTM")
 
-    @cached_property
-    def ttm_income_stmt(self) -> pd.DataFrame:
+    def get_ttm_income_stmt(self, financial_group: str | None = None) -> pd.DataFrame:
         """
         Get trailing twelve months (TTM) income statement.
 
         Calculates TTM by summing the last 4 quarters of income statement data.
-        Useful for analyzing recent performance without waiting for annual reports.
+
+        Args:
+            financial_group: Financial group code. Use "UFRS" for banks,
+                           "XI_29" for industrial companies. If None, defaults to XI_29.
 
         Returns:
             DataFrame with TTM column containing summed values for each line item.
 
         Examples:
-            >>> stock = Ticker("THYAO")
-            >>> stock.ttm_income_stmt
-                                            TTM
-            Net Satışlar             4.5e+11
-            Brüt Kar                 1.2e+11
-            Faaliyet Karı            8.0e+10
-            Net Kar                  3.0e+10
-        """
-        return self._calculate_ttm(self.quarterly_income_stmt)
+            >>> stock = bp.Ticker("THYAO")
+            >>> stock.get_ttm_income_stmt()
 
-    @cached_property
-    def ttm_cashflow(self) -> pd.DataFrame:
+            >>> bank = bp.Ticker("AKBNK")
+            >>> bank.get_ttm_income_stmt(financial_group="UFRS")
+        """
+        quarterly = self.get_income_stmt(quarterly=True, financial_group=financial_group)
+        return self._calculate_ttm(quarterly)
+
+    def get_ttm_cashflow(self, financial_group: str | None = None) -> pd.DataFrame:
         """
         Get trailing twelve months (TTM) cash flow statement.
 
         Calculates TTM by summing the last 4 quarters of cash flow data.
 
+        Args:
+            financial_group: Financial group code. Use "UFRS" for banks,
+                           "XI_29" for industrial companies. If None, defaults to XI_29.
+
         Returns:
             DataFrame with TTM column containing summed values for each line item.
 
         Examples:
-            >>> stock = Ticker("THYAO")
-            >>> stock.ttm_cashflow
-                                                TTM
-            İşletme Faaliyetlerinden Nakit    5.0e+10
-            Yatırım Faaliyetlerinden Nakit   -2.0e+10
-            Finansman Faaliyetlerinden Nakit -1.0e+10
+            >>> stock = bp.Ticker("THYAO")
+            >>> stock.get_ttm_cashflow()
+
+            >>> bank = bp.Ticker("AKBNK")
+            >>> bank.get_ttm_cashflow(financial_group="UFRS")
         """
-        return self._calculate_ttm(self.quarterly_cashflow)
+        quarterly = self.get_cashflow(quarterly=True, financial_group=financial_group)
+        return self._calculate_ttm(quarterly)
+
+    # Legacy property aliases
+    @cached_property
+    def ttm_income_stmt(self) -> pd.DataFrame:
+        """TTM income statement (use get_ttm_income_stmt() for banks)."""
+        return self.get_ttm_income_stmt()
+
+    @cached_property
+    def ttm_cashflow(self) -> pd.DataFrame:
+        """TTM cash flow (use get_ttm_cashflow() for banks)."""
+        return self.get_ttm_cashflow()
 
     @cached_property
     def major_holders(self) -> pd.DataFrame:

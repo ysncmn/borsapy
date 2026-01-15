@@ -104,7 +104,7 @@ df = hisse.history(period="1ay", interval="1d")  # Günlük mumlar (varsayılan)
 ### Finansal Tablolar
 
 ```python
-# Yıllık tablolar
+# Yıllık tablolar (sınai şirketler için)
 print(hisse.balance_sheet)          # Bilanço
 print(hisse.income_stmt)            # Gelir tablosu
 print(hisse.cashflow)               # Nakit akış
@@ -117,7 +117,23 @@ print(hisse.quarterly_cashflow)
 # TTM (Son 12 ay)
 print(hisse.ttm_income_stmt)
 print(hisse.ttm_cashflow)
+
+# Bankalar için (UFRS formatı)
+banka = bp.Ticker("AKBNK")
+print(banka.get_balance_sheet(financial_group="UFRS"))
+print(banka.get_income_stmt(financial_group="UFRS"))
+print(banka.get_cashflow(financial_group="UFRS"))
+
+# Banka çeyreklik tablolar
+print(banka.get_balance_sheet(quarterly=True, financial_group="UFRS"))
+print(banka.get_income_stmt(quarterly=True, financial_group="UFRS"))
+
+# Banka TTM
+print(banka.get_ttm_income_stmt(financial_group="UFRS"))
+print(banka.get_ttm_cashflow(financial_group="UFRS"))
 ```
+
+> **Not**: Sınai şirketler varsayılan olarak `XI_29` formatını kullanır. Bankalar için `financial_group="UFRS"` parametresi gereklidir.
 
 ### Temettü ve Sermaye Artırımları
 
