@@ -386,11 +386,14 @@ class IsYatirimProvider(BaseProvider):
 
         for item in items:
             try:
-                # Filter for:
+                # Filter for valid capital increase types:
+                # - Type 01: Bedelli Sermaye Artırımı (rights issue only)
+                # - Type 02: Bedelsiz Sermaye Artırımı (bonus issue from capital reserves)
                 # - Type 03: Bedelli ve Bedelsiz Sermaye Artırımı (rights + bonus issue)
                 # - Type 09: Bedelsiz Temettü (stock dividend / bonus from dividend)
+                # Exclude: 04, 07, 79, 90, 99 (administrative/technical records)
                 tip = item.get("SHT_KODU", "")
-                if tip not in ("03", "09"):
+                if tip not in ("01", "02", "03", "09"):
                     continue
 
                 # Parse date from timestamp (milliseconds) - strip time

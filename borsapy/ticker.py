@@ -677,11 +677,11 @@ class Ticker(TechnicalMixin):
             divs = self.dividends
             if not divs.empty:
                 for div_date, row in divs.iterrows():
-                    # Normalize dates for comparison
-                    div_date_normalized = pd.Timestamp(div_date).normalize()
+                    # Use date() for timezone-agnostic comparison
+                    div_date_only = pd.Timestamp(div_date).date()
                     for idx in df.index:
-                        idx_normalized = pd.Timestamp(idx).normalize()
-                        if div_date_normalized == idx_normalized:
+                        idx_date_only = pd.Timestamp(idx).date()
+                        if div_date_only == idx_date_only:
                             df.loc[idx, "Dividends"] = row.get("Amount", 0)
                             break
         except Exception:
@@ -692,7 +692,8 @@ class Ticker(TechnicalMixin):
             splits = self.splits
             if not splits.empty:
                 for split_date, row in splits.iterrows():
-                    split_date_normalized = pd.Timestamp(split_date).normalize()
+                    # Use date() for timezone-agnostic comparison
+                    split_date_only = pd.Timestamp(split_date).date()
                     # Calculate split ratio
                     # BonusFromCapital + BonusFromDividend = total bonus percentage
                     bonus_pct = row.get("BonusFromCapital", 0) + row.get(
@@ -702,8 +703,8 @@ class Ticker(TechnicalMixin):
                         # Convert percentage to split ratio (e.g., 20% bonus = 1.2 split)
                         split_ratio = 1 + (bonus_pct / 100)
                         for idx in df.index:
-                            idx_normalized = pd.Timestamp(idx).normalize()
-                            if split_date_normalized == idx_normalized:
+                            idx_date_only = pd.Timestamp(idx).date()
+                            if split_date_only == idx_date_only:
                                 df.loc[idx, "Stock Splits"] = split_ratio
                                 break
         except Exception:
